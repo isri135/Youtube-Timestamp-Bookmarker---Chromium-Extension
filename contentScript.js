@@ -3,15 +3,7 @@
     let currentVideo = "";
     let currentVideoBookmarks = [];
 
-    // Fires everytime the tab is reloaded
-    chrome.runtime.onMessage.addListener((obj, sender, response) => {
-        const { type, value, videoId } = obj;
 
-        if (type === "NEW") {
-            currentVideo = videoId;
-            newVideoLoaded();
-        }
-    });
 
     const fetchBookmarks = () => {
         return new Promise((resolve) => {
@@ -19,7 +11,22 @@
                 resolve(obj[currentVideo] ? JSON.parse(obj[currentVideo]): []);
             });
         });
-    }
+    };
+
+    const addNewBookmarkEventHandler = async () => {
+        const currentTime = youtubePlayer.currentTime;
+        const newBookmark = {
+            time: currentTime,
+            desc: "Bookmark at " + getTime(currentTime),
+        };
+
+        currentVideoBookmarks = await fetchBookmarks();
+        // console.log(newBookmark);
+
+        chrome.storage.sync.set({
+            [currentVideo]: JSON.stringify([...currentVideoBookmarks, newBookmark].sort((a, b) => a.time - b.time))
+        });
+    };
     
     const newVideoLoaded = async () => { // Added async
         var bookmarkBtn = document.getElementById("bookmark-btn");
@@ -50,22 +57,16 @@
         currentVideoBookmarks = await fetchBookmarks(); // Added
     }
 
-    const addNewBookmarkEventHandler = async () => {
-        const currentTime = youtubePlayer.currentTime;
-        const newBookmark = {
-            time: currentTime,
-            desc: "Bookmark at " + getTime(currentTime),
-        };
+    // Fires everytime the tab is reloaded
+    chrome.runtime.onMessage.addListener((obj, sender, response) => {
+        const { type, value, videoId } = obj;
 
-        currentVideoBookmarks = await fetchBookmarks();
-        // console.log(newBookmark);
+        if (type === "NEW") {
+            currentVideo = videoId;
+            newVideoLoaded();
+        }
+    });
 
-        chrome.storage.sync.set({
-            [currentVideo]: JSON.stringify([...currentVideoBookmarks, newBookmark].sort((a, b) => a.time - b.time))
-        });
-        
-          
-    }
 
     newVideoLoaded();
 })();
@@ -74,4 +75,4 @@ const getTime = t => {
     var date = new Date(0);
     date.setSeconds(t);
     return date.toISOString().substr(11, 8);
-}
+};

@@ -1,19 +1,25 @@
 // adding a new bookmark row to the popup
 const addNewBookmark = (collection, bookmark) => {
-    row = document.createElement("div");
-    title = document.createElement("div");
+    const row = document.createElement("div");
+    const title = document.createElement("div");
+    const controlParentElement = document.createElement("div");
 
     title.textContent = bookmark.desc;
     title.className = "bookmark-title";
+    controlParentElement.className = "bookmark-controls";
 
+    setBookmarkAttributes("play", onPlay, controlParentElement);
+    setBookmarkAttributes("delete", onDelete, controlParentElement);
 
     row.id = "bookmark-" + bookmark.time;
     row.className = "bookmark";
-    row.setAttribute("timdstamp", bookmark.time);
+    row.setAttribute("timestamp", bookmark.time);
 
     row.appendChild(title);
+    row.appendChild(controlParentElement);
     collection.appendChild(row);
 
+    console.log('here')
 };
 
 const viewBookmarks = (currentVideoBookmarks=[]) => {
@@ -29,13 +35,42 @@ const viewBookmarks = (currentVideoBookmarks=[]) => {
     } else {
         bookmarkCollection.innerHTML = '<i class="row">No bookmarks to display</i>'
     }
+
+    return;
 };
 
-const onPlay = e => {};
+const onPlay = async e => {
+    const bookmarkTime = e.target.parentNode.parentNode.getAttribute("timestamp");
+    const activeTab = await getActiveTabURL();
 
-const onDelete = e => {};
+    chrome.tabs.sendMessage(activeTab.id, {
+        type:  "PLAY",
+        value: bookmarkTime,
+    })
+};
 
-const setBookmarkAttributes =  () => {};
+const onDelete = async e => {
+    const activeTab = await getActiveTabURL();
+    const bookmarkTime = e.target.parentNode.parentNode.getAttribute("timestamp");
+    const bookmarkElementToDelete = document.getElementById("bookmark-" + bookmarkTime);
+
+    bookmarkElementToDelete.parentNode.removeChild(bookmarkElementToDelete);
+
+    chrome.tabs.sendMessage(activeTab.id, {
+        type: "DELETE",
+        value: bookmarkTime,
+    }, viewBookmarks);
+};
+
+
+const setBookmarkAttributes = (src, eventListener, controlParentElement) => {
+    const controlElement = document.createElement("button");
+    controlElement.src = "assets/" + src + ".png"
+    controlElement.title = src;
+    controlElement.addEventListener("click", eventListener);
+    controlParentElement.appendChild(controlElement);
+
+};
 
 async function getActiveTabURL() {
     let queryOptions = { active: true, currentWindow: true };

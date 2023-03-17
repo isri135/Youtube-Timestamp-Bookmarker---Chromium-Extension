@@ -13,7 +13,15 @@
         }
     });
 
-    const newVideoLoaded = () => {
+    const fetchBookmarks = () => {
+        return new Promise((resolve) => {
+            chrome.storage.sync.get(currentVideo, (obj) => {
+                resolve(obj[currentVideo] ? JSON.parse(obj[currentVideo]): []);
+            });
+        });
+    }
+    
+    const newVideoLoaded = async () => { // Added async
         var bookmarkBtn = document.getElementById("bookmark-btn");
 
         if (!bookmarkBtn) {
@@ -38,21 +46,25 @@
         youtubePlayer = document.getElementsByClassName("video-stream")[0];
 
         youtubeLeftControls.append(bookmarkBtn);
+
+        currentVideoBookmarks = await fetchBookmarks(); // Added
     }
 
-    const addNewBookmarkEventHandler = () => {
-        // const currentTime = youtubePlayer.currentTime;
-        // const newBookmark = {
-        //     time: currentTime,
-        //     desc: "Bookmark at " + getTime(currentTime),
-        // };
+    const addNewBookmarkEventHandler = async () => {
+        const currentTime = youtubePlayer.currentTime;
+        const newBookmark = {
+            time: currentTime,
+            desc: "Bookmark at " + getTime(currentTime),
+        };
+
+        currentVideoBookmarks = await fetchBookmarks();
         // console.log(newBookmark);
 
-        // chrome.storage.sync.set({
-        //     [currentVideo]: JSON.stringify([...currentVideoBookmarks, newBookmark].sort((a, b) => a.time - b.time))
-        // });
-
-        console.log('bookmark btn pressed')
+        chrome.storage.sync.set({
+            [currentVideo]: JSON.stringify([...currentVideoBookmarks, newBookmark].sort((a, b) => a.time - b.time))
+        });
+        
+          
     }
 
     newVideoLoaded();
@@ -60,7 +72,6 @@
 
 const getTime = t => {
     var date = new Date(0);
-    date.setSeconds(1);
-
-    return date.toISOString().substr(11, 0);
+    date.setSeconds(t);
+    return date.toISOString().substr(11, 8);
 }

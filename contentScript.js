@@ -12,10 +12,19 @@
             newVideoLoaded();
         }
     });
+
+    const fetchBookmarks = () => {
+        return new Promise((resolve) => {
+            chrome.storage.sync.get(currentVideo, (obj) => {
+                resolve(obj[currentVideo] ? JSON.parse(obj[currentVideo]): []);
+            });
+        });
+    }
     
-    const newVideoLoaded = () => {
+    const newVideoLoaded = async () => { // Added async
         const bookmarkBtnExists = document.getElementsByClassName("bookmark-btn")[0];
-        console.log(bookmarkBtnExists);
+        currentVideoBookmarks = await fetchBookmarks(); // Added
+        // console.log(bookmarkBtnExists);
 
         if (!bookmarkBtnExists) {
             const bookmarkBtn = document.createElement("button");
@@ -40,19 +49,21 @@
         }
     }
 
-    const addNewBookmarkEventHandler = () => {
-        // const currentTime = youtubePlayer.currentTime;
-        // const newBookmark = {
-        //     time: currentTime,
-        //     desc: "Bookmark at " + getTime(currentTime),
-        // };
+    const addNewBookmarkEventHandler = async () => {
+        const currentTime = youtubePlayer.currentTime;
+        const newBookmark = {
+            time: currentTime,
+            desc: "Bookmark at " + getTime(currentTime),
+        };
+
+        currentVideoBookmarks = await fetchBookmarks();
         // console.log(newBookmark);
 
-        // chrome.storage.sync.set({
-        //     [currentVideo]: JSON.stringify([...currentVideoBookmarks, newBookmark].sort((a, b) => a.time - b.time))
-        // });
-
-        console.log('bookmark btn pressed')
+        chrome.storage.sync.set({
+            [currentVideo]: JSON.stringify([...currentVideoBookmarks, newBookmark].sort((a, b) => a.time - b.time))
+        });
+        
+          
     }
 
     newVideoLoaded();
@@ -60,7 +71,6 @@
 
 const getTime = t => {
     var date = new Date(0);
-    date.setSeconds(1);
-
-    return date.toISOString().substr(11, 0);
+    date.setSeconds(t);
+    return date.toISOString().substr(11, 8);
 }
